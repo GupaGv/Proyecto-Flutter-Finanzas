@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
+import 'models/gasto_model.dart';
+import 'pages/gasto_form_page.dart';
 import 'pages/home_page.dart';
 import 'pages/login_page.dart';
 import 'pages/perfil_page.dart';
@@ -16,6 +18,7 @@ class AppRoutes {
   static const String home = '/home';
   static const String perfil = '/perfil';
   static const String settings = '/settings';
+  static const String gastoForm = '/gasto-form';
 }
 
 /// Notificador que avisa a GoRouter cuando el estado de autenticación cambia
@@ -88,6 +91,13 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.settings,
       builder: (context, state) => const SettingsPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.gastoForm,
+      builder: (context, state) {
+        final gasto = state.extra as Gasto?;
+        return GastoFormPage(gasto: gasto);
+      },
     ),
   ],
 );

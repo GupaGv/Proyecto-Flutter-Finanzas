@@ -8,5 +8,6 @@ void main() {
     expect(AppRoutes.home, '/home');
     expect(AppRoutes.perfil, '/perfil');
     expect(AppRoutes.settings, '/settings');
+    expect(AppRoutes.gastoForm, '/gasto-form');
   });
 }
