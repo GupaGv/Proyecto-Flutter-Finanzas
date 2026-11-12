@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "145822410554",
+    "project_id": "login-movil-iue",
+    "storage_bucket": "login-movil-iue.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:145822410554:android:ad2947630367045e081203",
+        "android_client_info": {
+          "package_name": "com.example.flutter_ejemplo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3qoVKOD8oIwQHjF91CEjTFWLXxYQ3h8Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
