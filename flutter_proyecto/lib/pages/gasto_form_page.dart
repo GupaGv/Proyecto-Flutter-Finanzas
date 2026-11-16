@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../models/gasto_model.dart';
 import '../routers.dart';
 import '../services/gasto_service.dart';
+import '../services/preferencias_service.dart';
 
 /// Pantalla con formulario para registrar o editar un gasto.
 /// Si recibe un objeto [gasto], entra en modo edición; de lo contrario, en modo creación.
@@ -39,6 +40,7 @@ class _GastoFormPageState extends State<GastoFormPage> {
   late String _categoriaSeleccionada;
   late DateTime _fechaSeleccionada;
   bool _guardando = false;
+  bool _eliminando = false;
 
   bool get _esEdicion => widget.gasto != null;
 
@@ -150,6 +152,61 @@ class _GastoFormPageState extends State<GastoFormPage> {
     }
   }
 
+  /// Muestra diálogo de confirmación y elimina el gasto en modo edición.
+  Future<void> _confirmarYEliminar() async {
+    final gasto = widget.gasto;
+    if (gasto == null) return;
+
+    final bool? confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar gasto'),
+        content: Text('¿Seguro que deseas eliminar "${gasto.descripcion}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar == true && mounted) {
+      setState(() => _eliminando = true);
+
+      try {
+        await GastoService().eliminar(gasto.id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gasto "${gasto.descripcion}" eliminado'),
+            backgroundColor: Colors.grey.shade800,
+          ),
+        );
+        context.go(AppRoutes.home);
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al eliminar el gasto: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _eliminando = false);
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -160,6 +217,16 @@ class _GastoFormPageState extends State<GastoFormPage> {
           tooltip: 'Volver',
           onPressed: () => context.go(AppRoutes.home),
         ),
+        actions: [
+          // Ícono de papelera en la barra superior cuando se está editando
+          if (_esEdicion)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              tooltip: 'Eliminar gasto',
+              onPressed:
+                  _guardando || _eliminando ? null : _confirmarYEliminar,
+            ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -173,10 +240,10 @@ class _GastoFormPageState extends State<GastoFormPage> {
                 TextFormField(
                   controller: _montoCtrl,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Monto (\$)',
-                    prefixIcon: Icon(Icons.monetization_on_outlined),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: 'Monto (${PreferenciasService().simboloMoneda})',
+                    prefixIcon: const Icon(Icons.monetization_on_outlined),
+                    border: const OutlineInputBorder(),
                     hintText: 'Ej: 25000',
                   ),
                   validator: (valor) {
@@ -257,9 +324,9 @@ class _GastoFormPageState extends State<GastoFormPage> {
                 ),
                 const SizedBox(height: 28),
 
-                // Botón Guardar
+                // Botón Guardar / Actualizar
                 FilledButton.icon(
-                  onPressed: _guardando ? null : _guardarGasto,
+                  onPressed: _guardando || _eliminando ? null : _guardarGasto,
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
@@ -280,6 +347,37 @@ class _GastoFormPageState extends State<GastoFormPage> {
                     style: const TextStyle(fontSize: 16),
                   ),
                 ),
+
+                // Botón Eliminar cuando se está editando
+                if (_esEdicion) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed:
+                        _guardando || _eliminando ? null : _confirmarYEliminar,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    icon: _eliminando
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.red,
+                            ),
+                          )
+                        : const Icon(Icons.delete_outline),
+                    label: Text(
+                      _eliminando ? 'Eliminando...' : 'Eliminar Gasto',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
