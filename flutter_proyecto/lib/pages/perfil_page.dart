@@ -1,119 +1,159 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
-import '../routers.dart';
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
 
-/// Pantalla de perfil de usuario.
-/// Muestra los datos de la cuenta activa sin consultar directamente a Firebase.
+/// Pantalla de perfil de usuario con estética fintech minimalista.
+/// Muestra avatar con la inicial, correo, UID y botón de cerrar sesión.
 class PerfilPage extends StatelessWidget {
   const PerfilPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Obtenemos los datos del usuario mediante AuthService.
     final usuario = AuthService().usuarioActual;
     final email = usuario?.email ?? 'Sin correo registrado';
     final uid = usuario?.uid ?? 'No disponible';
+    final inicial = email.isNotEmpty ? email[0].toUpperCase() : 'U';
+
+    final colors = context.appColors;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mi Perfil'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          tooltip: 'Volver',
-          onPressed: () => context.go(AppRoutes.home),
+        title: const Text(
+          'Mi Perfil',
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 16),
-              CircleAvatar(
-                radius: 48,
-                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                child: Icon(
-                  Icons.person,
-                  size: 56,
-                  color: Theme.of(context).colorScheme.primary,
+              const SizedBox(height: 12),
+
+              // Avatar minimalista con la inicial del correo
+              Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  color: colors.greenSecondary.withValues(alpha: 0.35),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: colors.border, width: 1.5),
+                ),
+                child: Center(
+                  child: Text(
+                    inicial,
+                    style: TextStyle(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
+
+              // Correo del usuario
               Text(
                 email,
                 style: const TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Usuario de Gestor de Gastos',
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
-
-              // Tarjeta con información detallada de la cuenta
-              Card(
-                elevation: 1,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+              Text(
+                'Usuario activo',
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.email_outlined),
-                        title: const Text('Correo electrónico'),
-                        subtitle: Text(email),
+              ),
+              const SizedBox(height: 28),
+
+              // Tarjeta con detalles de la cuenta
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardTheme.color,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: colors.border, width: 1),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: Icon(
+                        Icons.email_outlined,
+                        color: colors.textSecondary,
+                        size: 22,
                       ),
-                      const Divider(),
-                      ListTile(
-                        leading: const Icon(Icons.fingerprint),
-                        title: const Text('Identificador (UID)'),
-                        subtitle: Text(
-                          uid,
-                          style: const TextStyle(fontSize: 12),
+                      title: Text(
+                        'Correo electrónico',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colors.textSecondary,
                         ),
                       ),
-                    ],
-                  ),
+                      subtitle: Text(
+                        email,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Divider(color: colors.border, height: 1),
+                    ListTile(
+                      leading: Icon(
+                        Icons.fingerprint_outlined,
+                        color: colors.textSecondary,
+                        size: 22,
+                      ),
+                      title: Text(
+                        'Identificador de usuario (UID)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                      subtitle: Text(
+                        uid,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 36),
 
-              // Botón para volver al Inicio con context.go
+              // Botón ancho para cerrar sesión estilizado con color de error/alerta
               SizedBox(
                 width: double.infinity,
+                height: 50,
                 child: OutlinedButton.icon(
-                  onPressed: () => context.go(AppRoutes.home),
-                  icon: const Icon(Icons.home_outlined),
-                  label: const Text('Volver a Inicio'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Botón para cerrar sesión
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
                   onPressed: () async {
-                    // Cerrar sesión mediante AuthService.
                     await AuthService().salir();
                   },
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Cerrar Sesión'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.red.shade700,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colors.gasto,
+                    side: BorderSide(color: colors.gasto, width: 1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.logout_outlined, size: 20),
+                  label: const Text(
+                    'Cerrar Sesión',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),

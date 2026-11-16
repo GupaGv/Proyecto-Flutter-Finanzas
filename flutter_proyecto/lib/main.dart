@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'routers.dart';
 import 'services/preferencias_service.dart';
+import 'theme/app_theme.dart';
 
 /// Punto de entrada principal de la aplicación Flutter.
 Future<void> main() async {
@@ -20,7 +21,7 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-/// Widget raíz de la aplicación que configura GoRouter y el tema visual dinámico (claro/oscuro).
+/// Widget raíz de la aplicación que configura GoRouter y el sistema de temas fintech (claro/oscuro).
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -37,24 +38,8 @@ class MyApp extends StatelessWidget {
           title: 'Gestor de Gastos',
           debugShowCheckedModeBanner: false,
           themeMode: preferencias.themeMode,
-          // Tema Claro
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.green,
-              brightness: Brightness.light,
-            ),
-            useMaterial3: true,
-            appBarTheme: const AppBarTheme(centerTitle: true),
-          ),
-          // Tema Oscuro
-          darkTheme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.green,
-              brightness: Brightness.dark,
-            ),
-            useMaterial3: true,
-            appBarTheme: const AppBarTheme(centerTitle: true),
-          ),
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
           routerConfig: appRouter,
         );
       },

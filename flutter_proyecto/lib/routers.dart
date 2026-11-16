@@ -12,6 +12,7 @@ import 'pages/perfil_page.dart';
 import 'pages/register_page.dart';
 import 'pages/settings_page.dart';
 import 'services/auth_service.dart';
+import 'widgets/scaffold_principal.dart';
 
 /// Rutas nombradas de la aplicación para evitar errores de escritura manual.
 class AppRoutes {
@@ -45,7 +46,7 @@ class AuthNotifier extends ChangeNotifier {
 
 final _authNotifier = AuthNotifier();
 
-/// Configuración central de navegación mediante GoRouter.
+/// Configuración central de navegación mediante GoRouter con ShellRoute para barra inferior.
 /// Controla la redirección automática según el estado de la sesión en Firebase.
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.login,
@@ -83,18 +84,27 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.register,
       builder: (context, state) => const RegisterPage(),
     ),
-    GoRoute(
-      path: AppRoutes.home,
-      builder: (context, state) => const HomePage(),
+    // ShellRoute que provee la barra de navegación inferior para Inicio, Perfil y Ajustes
+    ShellRoute(
+      builder: (context, state, child) {
+        return ScaffoldPrincipal(child: child);
+      },
+      routes: [
+        GoRoute(
+          path: AppRoutes.home,
+          builder: (context, state) => const HomePage(),
+        ),
+        GoRoute(
+          path: AppRoutes.perfil,
+          builder: (context, state) => const PerfilPage(),
+        ),
+        GoRoute(
+          path: AppRoutes.settings,
+          builder: (context, state) => const SettingsPage(),
+        ),
+      ],
     ),
-    GoRoute(
-      path: AppRoutes.perfil,
-      builder: (context, state) => const PerfilPage(),
-    ),
-    GoRoute(
-      path: AppRoutes.settings,
-      builder: (context, state) => const SettingsPage(),
-    ),
+    // Formularios independientes con AppBar completo
     GoRoute(
       path: AppRoutes.gastoForm,
       builder: (context, state) {

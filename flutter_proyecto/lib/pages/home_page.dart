@@ -8,10 +8,39 @@ import '../services/auth_service.dart';
 import '../services/gasto_service.dart';
 import '../services/ingreso_service.dart';
 import '../services/preferencias_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/acciones_rapidas.dart';
+import '../widgets/encabezado_seccion.dart';
+import '../widgets/fila_categoria.dart';
+import '../widgets/fila_movimiento.dart';
+import '../widgets/tarjeta_saldo.dart';
 
-/// Pantalla principal de la aplicación "Gestor de Gastos Personales".
-/// Incluye selector de mes, tarjetas de Ingresos/Gastos/Disponible,
-/// resumen por categoría (gastos) y listas en tiempo real de ingresos y gastos.
+/// Modelo interno para unificar ingresos y gastos en una sola lista cronológica.
+class _MovimientoItem {
+  final bool esGasto;
+  final Gasto? gasto;
+  final Ingreso? ingreso;
+  final DateTime fecha;
+
+  _MovimientoItem.gasto(this.gasto)
+      : esGasto = true,
+        ingreso = null,
+        fecha = gasto!.fecha;
+
+  _MovimientoItem.ingreso(this.ingreso)
+      : esGasto = false,
+        gasto = null,
+        fecha = ingreso!.fecha;
+
+  String get id => esGasto ? gasto!.id : ingreso!.id;
+  String get descripcion => esGasto ? gasto!.descripcion : ingreso!.descripcion;
+  double get monto => esGasto ? gasto!.monto : ingreso!.monto;
+  String get categoria => esGasto ? gasto!.categoria : 'Ingreso';
+}
+
+/// Pantalla principal con diseño fintech minimalista y elegante.
+/// Muestra tarjeta de saldo con toggle de privacidad, acciones rápidas,
+/// resumen por categoría y lista unificada de movimientos recientes.
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -20,8 +49,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Mes y año actualmente seleccionados para visualizar
   late DateTime _mesSeleccionado;
+  bool _montosOcultos = false;
 
   static const List<String> _meses = [
     'Enero',
@@ -45,7 +74,6 @@ class _HomePageState extends State<HomePage> {
     _mesSeleccionado = DateTime(ahora.year, ahora.month, 1);
   }
 
-  /// Cambia al mes anterior.
   void _mesAnterior() {
     setState(() {
       _mesSeleccionado = DateTime(
@@ -56,7 +84,6 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  /// Cambia al mes siguiente.
   void _mesSiguiente() {
     setState(() {
       _mesSeleccionado = DateTime(
@@ -67,7 +94,6 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  /// Retorna al mes actual.
   void _irAMesActual() {
     final ahora = DateTime.now();
     setState(() {
@@ -75,31 +101,29 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  /// Asigna un ícono según la categoría del gasto.
   IconData _iconoPorCategoria(String categoria) {
     switch (categoria) {
       case 'Alimentación':
-        return Icons.restaurant;
+        return Icons.restaurant_outlined;
       case 'Transporte':
-        return Icons.directions_bus;
+        return Icons.directions_bus_outlined;
       case 'Vivienda':
-        return Icons.home;
+        return Icons.home_outlined;
       case 'Servicios':
-        return Icons.receipt_long;
+        return Icons.receipt_long_outlined;
       case 'Salud':
-        return Icons.local_hospital;
+        return Icons.local_hospital_outlined;
       case 'Educación':
-        return Icons.school;
+        return Icons.school_outlined;
       case 'Entretenimiento':
-        return Icons.movie;
+        return Icons.movie_outlined;
       case 'Ropa':
-        return Icons.checkroom;
+        return Icons.checkroom_outlined;
       default:
-        return Icons.attach_money;
+        return Icons.attach_money_outlined;
     }
   }
 
-  /// Diálogo reutilizable de confirmación para eliminar un registro.
   Future<bool?> _mostrarDialogoConfirmacion(
       BuildContext context, String descripcion) {
     return showDialog<bool>(
@@ -114,7 +138,7 @@ class _HomePageState extends State<HomePage> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: context.appColors.gasto,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Eliminar'),
@@ -124,7 +148,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  /// Elimina un gasto tras pedir confirmación mediante el ícono de papelera.
   Future<void> _eliminarGastoConConfirmacion(
       BuildContext context, Gasto gasto) async {
     final bool? confirmar =
@@ -137,7 +160,7 @@ class _HomePageState extends State<HomePage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Gasto "${gasto.descripcion}" eliminado'),
-              backgroundColor: Colors.grey.shade800,
+              backgroundColor: Theme.of(context).colorScheme.onSurface,
             ),
           );
         }
@@ -146,7 +169,7 @@ class _HomePageState extends State<HomePage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Error al eliminar el gasto: $e'),
-              backgroundColor: Colors.red,
+              backgroundColor: context.appColors.gasto,
             ),
           );
         }
@@ -154,7 +177,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  /// Elimina un ingreso tras pedir confirmación mediante el ícono de papelera.
   Future<void> _eliminarIngresoConConfirmacion(
       BuildContext context, Ingreso ingreso) async {
     final bool? confirmar =
@@ -167,7 +189,7 @@ class _HomePageState extends State<HomePage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Ingreso "${ingreso.descripcion}" eliminado'),
-              backgroundColor: Colors.grey.shade800,
+              backgroundColor: Theme.of(context).colorScheme.onSurface,
             ),
           );
         }
@@ -176,82 +198,12 @@ class _HomePageState extends State<HomePage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Error al eliminar el ingreso: $e'),
-              backgroundColor: Colors.red,
+              backgroundColor: context.appColors.gasto,
             ),
           );
         }
       }
     }
-  }
-
-  /// Abre un menú modal desde el botón flotante para registrar un nuevo gasto o ingreso.
-  void _mostrarMenuRegistro(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  '¿Qué deseas registrar?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 20),
-                ListTile(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.red.shade200),
-                  ),
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.red.shade100,
-                    child: Icon(Icons.arrow_upward, color: Colors.red.shade700),
-                  ),
-                  title: const Text(
-                    'Nuevo Gasto',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: const Text('Registra una salida de dinero'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    context.go(AppRoutes.gastoForm);
-                  },
-                ),
-                const SizedBox(height: 12),
-                ListTile(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.green.shade200),
-                  ),
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.green.shade100,
-                    child: Icon(Icons.arrow_downward, color: Colors.green.shade700),
-                  ),
-                  title: const Text(
-                    'Nuevo Ingreso',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: const Text('Registra una entrada de dinero'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    context.go(AppRoutes.ingresoForm);
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   @override
@@ -266,36 +218,77 @@ class _HomePageState extends State<HomePage> {
         _mesSeleccionado.year == ahora.year && _mesSeleccionado.month == ahora.month;
 
     final pref = PreferenciasService();
+    final colors = context.appColors;
 
     return ListenableBuilder(
       listenable: pref,
       builder: (context, _) {
-        final simbolo = pref.simboloMoneda;
-
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Gestor de Gastos'),
+            titleSpacing: 20,
+            title: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: colors.greenSecondary.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.account_balance_wallet_outlined,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Hola,',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        email,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.settings_outlined),
+                icon: const Icon(Icons.settings_outlined, size: 22),
                 tooltip: 'Configuración',
                 onPressed: () => context.go(AppRoutes.settings),
               ),
               IconButton(
-                icon: const Icon(Icons.account_circle_outlined),
+                icon: const Icon(Icons.account_circle_outlined, size: 22),
                 tooltip: 'Perfil',
                 onPressed: () => context.go(AppRoutes.perfil),
               ),
               IconButton(
-                icon: const Icon(Icons.logout),
+                icon: const Icon(Icons.logout_outlined, size: 22),
                 tooltip: 'Cerrar sesión',
                 onPressed: () async {
                   await AuthService().salir();
                 },
               ),
+              const SizedBox(width: 8),
             ],
           ),
-          // Escucha simultáneamente las colecciones de Gastos e Ingresos
           body: StreamBuilder<List<Gasto>>(
             stream: GastoService().obtenerGastos(),
             builder: (context, snapshotGastos) {
@@ -318,16 +311,16 @@ class _HomePageState extends State<HomePage> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.error_outline,
-                              size: 48,
-                              color: Colors.red,
+                              size: 44,
+                              color: colors.gasto,
                             ),
                             const SizedBox(height: 12),
                             Text(
                               'Error al cargar información: $error',
                               textAlign: TextAlign.center,
-                              style: const TextStyle(color: Colors.red),
+                              style: TextStyle(color: colors.gasto),
                             ),
                           ],
                         ),
@@ -338,7 +331,7 @@ class _HomePageState extends State<HomePage> {
                   final todosLosGastos = snapshotGastos.data ?? [];
                   final todosLosIngresos = snapshotIngresos.data ?? [];
 
-                  // Filtrar gastos e ingresos que corresponden al mes y año seleccionado
+                  // Filtrado por el mes seleccionado
                   final gastosDelMes = todosLosGastos.where((g) {
                     return g.fecha.year == _mesSeleccionado.year &&
                         g.fecha.month == _mesSeleccionado.month;
@@ -349,7 +342,6 @@ class _HomePageState extends State<HomePage> {
                         i.fecha.month == _mesSeleccionado.month;
                   }).toList();
 
-                  // Cálculos financieros del mes
                   final totalGastos = gastosDelMes.fold<double>(
                     0.0,
                     (acum, g) => acum + g.monto,
@@ -361,9 +353,8 @@ class _HomePageState extends State<HomePage> {
                   );
 
                   final disponible = totalIngresos - totalGastos;
-                  final disponibleEsNegativo = disponible < 0;
 
-                  // Agrupación y suma por categoría para el resumen mensual (solo gastos)
+                  // Agrupación por categoría (solo gastos del mes)
                   final Map<String, double> totalesPorCategoria = {};
                   for (final g in gastosDelMes) {
                     totalesPorCategoria[g.categoria] =
@@ -374,792 +365,292 @@ class _HomePageState extends State<HomePage> {
                       .toList()
                     ..sort((a, b) => b.value.compareTo(a.value));
 
+                  // Movimientos combinados del mes ordenados cronológicamente
+                  final List<_MovimientoItem> movimientos = [
+                    ...gastosDelMes.map((g) => _MovimientoItem.gasto(g)),
+                    ...ingresosDelMes.map((i) => _MovimientoItem.ingreso(i)),
+                  ]..sort((a, b) => b.fecha.compareTo(a.fecha));
+
                   return ListView(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0,
+                      vertical: 12.0,
+                    ),
                     children: [
-                      // Tarjeta de bienvenida
-                      Card(
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                      // Selector de mes minimalista
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10.0,
+                          vertical: 4.0,
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 22,
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
-                                child: Icon(
-                                  Icons.person,
-                                  size: 24,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primary,
-                                ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardTheme.color,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: colors.border, width: 1),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.chevron_left_outlined,
+                                size: 20,
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  email,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
+                              tooltip: 'Mes anterior',
+                              onPressed: _mesAnterior,
+                            ),
+                            GestureDetector(
+                              onTap: esMesActual ? null : _irAMesActual,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today_outlined,
+                                    size: 16,
+                                    color: Theme.of(context).colorScheme.primary,
                                   ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Selector para cambiar de mes (aplica a gastos e ingresos)
-                      Card(
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8.0,
-                            vertical: 4.0,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.chevron_left),
-                                tooltip: 'Mes anterior',
-                                onPressed: _mesAnterior,
-                              ),
-                              GestureDetector(
-                                onTap: esMesActual ? null : _irAMesActual,
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.calendar_month, size: 20),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '$nombreMes $anio',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '$nombreMes $anio',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
                                     ),
-                                    if (!esMesActual) ...[
-                                      const SizedBox(width: 6),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green.shade100,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          'Hoy',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: Colors.green.shade900,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
+                                  ),
+                                  if (!esMesActual) ...[
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
                                       ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.chevron_right),
-                                tooltip: 'Mes siguiente',
-                                onPressed: _mesSiguiente,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Tres tarjetas del mes: Ingresos, Gastos y Disponible
-                      Row(
-                        children: [
-                          // Tarjeta Ingresos
-                          Expanded(
-                            child: Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12.0,
-                                  horizontal: 6.0,
-                                ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.arrow_downward,
-                                          color: Colors.green.shade700,
-                                          size: 14,
-                                        ),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          'Ingresos',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey.shade700,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    FittedBox(
-                                      fit: BoxFit.scaleDown,
+                                      decoration: BoxDecoration(
+                                        color: colors.greenSecondary
+                                            .withValues(alpha: 0.35),
+                                        borderRadius:
+                                            BorderRadius.circular(6),
+                                      ),
                                       child: Text(
-                                        '+$simbolo ${totalIngresos.toStringAsFixed(2)}',
+                                        'Hoy',
                                         style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.green.shade700,
+                                          fontSize: 10,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                          fontWeight: FontWeight.w700,
                                         ),
                                       ),
                                     ),
                                   ],
-                                ),
+                                ],
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-
-                          // Tarjeta Gastos
-                          Expanded(
-                            child: Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.chevron_right_outlined,
+                                size: 20,
                               ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12.0,
-                                  horizontal: 6.0,
-                                ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.arrow_upward,
-                                          color: Colors.red.shade700,
-                                          size: 14,
-                                        ),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          'Gastos',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey.shade700,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: Text(
-                                        '-$simbolo ${totalGastos.toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.red.shade700,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              tooltip: 'Mes siguiente',
+                              onPressed: _mesSiguiente,
                             ),
-                          ),
-                          const SizedBox(width: 6),
-
-                          // Tarjeta Disponible (en rojo si es negativo)
-                          Expanded(
-                            child: Card(
-                              elevation: 2,
-                              color: disponibleEsNegativo
-                                  ? (Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.red.shade900.withValues(alpha: 0.4)
-                                      : Colors.red.shade50)
-                                  : (Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.green.shade900
-                                          .withValues(alpha: 0.3)
-                                      : Colors.green.shade50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(
-                                  color: disponibleEsNegativo
-                                      ? Colors.red.shade400
-                                      : Colors.green.shade400,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12.0,
-                                  horizontal: 6.0,
-                                ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          disponibleEsNegativo
-                                              ? Icons.warning_amber_rounded
-                                              : Icons.account_balance_wallet,
-                                          color: disponibleEsNegativo
-                                              ? Colors.red.shade700
-                                              : Colors.green.shade800,
-                                          size: 14,
-                                        ),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          'Disponible',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: disponibleEsNegativo
-                                              ? Colors.red.shade700
-                                              : Colors.green.shade800,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: Text(
-                                        '${disponible < 0 ? "-" : ""}$simbolo ${disponible.abs().toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: disponibleEsNegativo
-                                              ? Colors.red.shade700
-                                              : Colors.green.shade800,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Sección: Resumen por categoría (solo de gastos)
-                      const Text(
-                        'Resumen por Categoría (Gastos)',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          ],
                         ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Tarjeta Principal de Saldo
+                      TarjetaSaldo(
+                        disponible: disponible,
+                        totalIngresos: totalIngresos,
+                        totalGastos: totalGastos,
+                        moneda: pref.moneda,
+                        montosOcultos: _montosOcultos,
+                        onToggleVisibilidad: () {
+                          setState(() {
+                            _montosOcultos = !_montosOcultos;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Dos acciones rápidas
+                      const AccionesRapidas(),
+                      const SizedBox(height: 24),
+
+                      // Resumen por Categoría
+                      EncabezadoSeccion(
+                        titulo: 'Resumen por categoría',
+                        badge: categoriasOrdenadas.isNotEmpty
+                            ? '${categoriasOrdenadas.length}'
+                            : null,
                       ),
                       const SizedBox(height: 8),
 
                       if (categoriasOrdenadas.isEmpty)
-                        Card(
-                          elevation: 0,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey.shade900
-                              : Colors.grey.shade100,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        Container(
+                          padding: const EdgeInsets.all(18.0),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardTheme.color,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: colors.border, width: 1),
                           ),
-                          child: const Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Center(
-                              child: Text(
-                                'Sin gastos registrados en este mes para categorizar',
-                                style: TextStyle(color: Colors.grey, fontSize: 13),
+                          child: Center(
+                            child: Text(
+                              'Sin gastos registrados en este período',
+                              style: TextStyle(
+                                color: colors.textSecondary,
+                                fontSize: 13,
                               ),
                             ),
                           ),
                         )
                       else
-                        Card(
-                          elevation: 1,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                            vertical: 10.0,
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              children: [
-                                for (final entry in categoriasOrdenadas) ...[
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 6.0,
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              _iconoPorCategoria(entry.key),
-                                              size: 20,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                entry.key,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ),
-                                            Text(
-                                              '$simbolo ${entry.value.toStringAsFixed(2)}',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              '(${totalGastos > 0 ? ((entry.value / totalGastos) * 100).toStringAsFixed(0) : 0}%)',
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 6),
-                                        ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                          child: LinearProgressIndicator(
-                                            value: totalGastos > 0
-                                                ? (entry.value / totalGastos)
-                                                : 0.0,
-                                            minHeight: 5,
-                                            backgroundColor:
-                                                Colors.grey.shade200,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                              Theme.of(context)
-                                                  .colorScheme
-                                                  .primary,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  if (entry != categoriasOrdenadas.last)
-                                    const Divider(height: 12),
-                                ],
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardTheme.color,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: colors.border, width: 1),
+                          ),
+                          child: Column(
+                            children: [
+                              for (int i = 0;
+                                  i < categoriasOrdenadas.length;
+                                  i++) ...[
+                                FilaCategoria(
+                                  categoria: categoriasOrdenadas[i].key,
+                                  monto: categoriasOrdenadas[i].value,
+                                  porcentaje: totalGastos > 0
+                                      ? (categoriasOrdenadas[i].value /
+                                          totalGastos)
+                                      : 0.0,
+                                  icono: _iconoPorCategoria(
+                                      categoriasOrdenadas[i].key),
+                                  moneda: pref.moneda,
+                                  montosOcultos: _montosOcultos,
+                                ),
+                                if (i != categoriasOrdenadas.length - 1)
+                                  const SizedBox(height: 4),
                               ],
-                            ),
+                            ],
                           ),
                         ),
                       const SizedBox(height: 24),
 
-                      // Sección: Lista de Ingresos del mes
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Ingresos de $nombreMes',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            '${ingresosDelMes.length} item(s)',
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
+                      // Movimientos Recientes (Gastos e Ingresos unificados)
+                      EncabezadoSeccion(
+                        titulo: 'Movimientos recientes',
+                        badge: '${movimientos.length}',
                       ),
                       const SizedBox(height: 8),
 
-                      if (ingresosDelMes.isEmpty)
-                        Card(
-                          elevation: 0,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey.shade900
-                              : Colors.grey.shade100,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.grey.shade800
-                                  : Colors.grey.shade300,
-                            ),
+                      if (movimientos.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(28.0),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardTheme.color,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: colors.border, width: 1),
                           ),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(
-                              vertical: 24.0,
-                              horizontal: 16,
-                            ),
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.savings_outlined,
-                                  size: 40,
-                                  color: Colors.grey,
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.receipt_long_outlined,
+                                size: 36,
+                                color: colors.textSecondary.withValues(alpha: 0.6),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'No hay movimientos en este mes',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: colors.textSecondary,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'No hay ingresos en este mes',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         )
                       else
-                        for (final ingreso in ingresosDelMes)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: Dismissible(
-                              key: Key('ingreso_${ingreso.id}'),
-                              direction: DismissDirection.endToStart,
-                              background: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.red.shade700,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                alignment: Alignment.centerRight,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 20),
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      'Eliminar',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(width: 8),
-                                    Icon(Icons.delete, color: Colors.white),
-                                  ],
-                                ),
-                              ),
-                              confirmDismiss: (direction) async {
-                                return await _mostrarDialogoConfirmacion(
-                                  context,
-                                  ingreso.descripcion,
+                        for (final item in movimientos)
+                          FilaMovimiento(
+                            id: '${item.esGasto ? "gasto" : "ingreso"}_${item.id}',
+                            descripcion: item.descripcion,
+                            subtitulo:
+                                '${item.categoria} • ${item.fecha.day.toString().padLeft(2, '0')}/${item.fecha.month.toString().padLeft(2, '0')}/${item.fecha.year}',
+                            monto: item.monto,
+                            esIngreso: !item.esGasto,
+                            icono: item.esGasto
+                                ? _iconoPorCategoria(item.categoria)
+                                : Icons.arrow_downward_outlined,
+                            moneda: pref.moneda,
+                            montosOcultos: _montosOcultos,
+                            onTap: () {
+                              if (item.esGasto) {
+                                context.go(
+                                  AppRoutes.gastoForm,
+                                  extra: item.gasto,
                                 );
-                              },
-                              onDismissed: (direction) async {
-                                try {
-                                  await IngresoService().eliminar(ingreso.id);
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Ingreso "${ingreso.descripcion}" eliminado',
-                                        ),
-                                        backgroundColor: Colors.grey.shade800,
-                                      ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Error al eliminar el ingreso: $e',
-                                        ),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                              child: Card(
-                                elevation: 1,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: Colors.green.shade100,
-                                    child: Icon(
-                                      Icons.arrow_downward,
-                                      color: Colors.green.shade700,
-                                    ),
-                                  ),
-                                  title: Text(
-                                    ingreso.descripcion,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    'Ingreso • ${ingreso.fecha.day.toString().padLeft(2, '0')}/${ingreso.fecha.month.toString().padLeft(2, '0')}/${ingreso.fecha.year}',
-                                  ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        '+$simbolo ${ingreso.monto.toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          color: Colors.green.shade700,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.delete_outline,
-                                          color: Colors.red,
-                                        ),
-                                        tooltip: 'Eliminar ingreso',
-                                        onPressed: () =>
-                                            _eliminarIngresoConConfirmacion(
-                                          context,
-                                          ingreso,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  onTap: () {
-                                    context.go(
-                                      AppRoutes.ingresoForm,
-                                      extra: ingreso,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                      const SizedBox(height: 24),
-
-                      // Sección: Lista de Gastos del mes
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Gastos de $nombreMes',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            '${gastosDelMes.length} item(s)',
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-
-                      if (gastosDelMes.isEmpty)
-                        Card(
-                          elevation: 0,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey.shade900
-                              : Colors.grey.shade100,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.grey.shade800
-                                  : Colors.grey.shade300,
-                            ),
-                          ),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(
-                              vertical: 24.0,
-                              horizontal: 16,
-                            ),
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.receipt_long_outlined,
-                                  size: 40,
-                                  color: Colors.grey,
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'No hay gastos en este mes',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      else
-                        for (final gasto in gastosDelMes)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: Dismissible(
-                              key: Key('gasto_${gasto.id}'),
-                              direction: DismissDirection.endToStart,
-                              background: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.red.shade700,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                alignment: Alignment.centerRight,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 20),
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      'Eliminar',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(width: 8),
-                                    Icon(Icons.delete, color: Colors.white),
-                                  ],
-                                ),
-                              ),
-                              confirmDismiss: (direction) async {
-                                return await _mostrarDialogoConfirmacion(
-                                  context,
-                                  gasto.descripcion,
+                              } else {
+                                context.go(
+                                  AppRoutes.ingresoForm,
+                                  extra: item.ingreso,
                                 );
-                              },
-                              onDismissed: (direction) async {
-                                try {
-                                  await GastoService().eliminar(gasto.id);
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Gasto "${gasto.descripcion}" eliminado',
-                                        ),
-                                        backgroundColor: Colors.grey.shade800,
-                                      ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Error al eliminar el gasto: $e',
-                                        ),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                  }
+                              }
+                            },
+                            onEliminar: () {
+                              if (item.esGasto) {
+                                _eliminarGastoConConfirmacion(
+                                    context, item.gasto!);
+                              } else {
+                                _eliminarIngresoConConfirmacion(
+                                    context, item.ingreso!);
+                              }
+                            },
+                            onConfirmarEliminacion: () =>
+                                _mostrarDialogoConfirmacion(
+                                    context, item.descripcion),
+                            onDismissed: () async {
+                              try {
+                                if (item.esGasto) {
+                                  await GastoService().eliminar(item.gasto!.id);
+                                } else {
+                                  await IngresoService()
+                                      .eliminar(item.ingreso!.id);
                                 }
-                              },
-                              child: Card(
-                                elevation: 1,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: Theme.of(context)
-                                        .colorScheme
-                                        .secondaryContainer,
-                                    child: Icon(
-                                      _iconoPorCategoria(gasto.categoria),
-                                      color: Theme.of(context)
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '${item.esGasto ? "Gasto" : "Ingreso"} "${item.descripcion}" eliminado',
+                                      ),
+                                      backgroundColor: Theme.of(context)
                                           .colorScheme
-                                          .onSecondaryContainer,
+                                          .onSurface,
                                     ),
-                                  ),
-                                  title: Text(
-                                    gasto.descripcion,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Error al eliminar: $e'),
+                                      backgroundColor: colors.gasto,
                                     ),
-                                  ),
-                                  subtitle: Text(
-                                    '${gasto.categoria} • ${gasto.fecha.day.toString().padLeft(2, '0')}/${gasto.fecha.month.toString().padLeft(2, '0')}/${gasto.fecha.year}',
-                                  ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        '-$simbolo ${gasto.monto.toStringAsFixed(2)}',
-                                        style: const TextStyle(
-                                          color: Colors.red,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.delete_outline,
-                                          color: Colors.red,
-                                        ),
-                                        tooltip: 'Eliminar gasto',
-                                        onPressed: () =>
-                                            _eliminarGastoConConfirmacion(
-                                          context,
-                                          gasto,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  onTap: () {
-                                    context.go(
-                                      AppRoutes.gastoForm,
-                                      extra: gasto,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
+                                  );
+                                }
+                              }
+                            },
                           ),
+                      const SizedBox(height: 16),
                     ],
                   );
                 },
               );
             },
-          ),
-          // Botón flotante que abre el menú con "Nuevo gasto" y "Nuevo ingreso"
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => _mostrarMenuRegistro(context),
-            icon: const Icon(Icons.add),
-            label: const Text('Registrar'),
           ),
         );
       },

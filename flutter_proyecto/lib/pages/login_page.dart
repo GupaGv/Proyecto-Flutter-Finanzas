@@ -4,8 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../routers.dart';
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/campo_texto.dart';
 
 /// Pantalla de inicio de sesión de la aplicación "Gestor de Gastos Personales".
+/// Diseñada con estética fintech minimalista y adaptable a temas claro y oscuro.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -42,16 +45,22 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(mensajeDeError(e)),
-          backgroundColor: Colors.red.shade700,
+          content: Text(
+            mensajeDeError(e),
+            style: TextStyle(color: Theme.of(context).colorScheme.onError),
+          ),
+          backgroundColor: context.appColors.gasto,
         ),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error inesperado. Intenta de nuevo.'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: Text(
+            'Error inesperado. Intenta de nuevo.',
+            style: TextStyle(color: Theme.of(context).colorScheme.onError),
+          ),
+          backgroundColor: context.appColors.gasto,
         ),
       );
     } finally {
@@ -63,72 +72,65 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Ícono decorativo superior en contenedor circular
+                  // Ícono simple y elegante arriba
                   Center(
                     child: Container(
-                      width: 90,
-                      height: 90,
+                      width: 68,
+                      height: 68,
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.green.shade200, width: 2),
+                        color: colors.greenSecondary.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: colors.border, width: 1),
                       ),
                       child: Icon(
-                        Icons.account_balance_wallet_rounded,
-                        size: 48,
-                        color: Colors.green.shade700,
+                        Icons.account_balance_wallet_outlined,
+                        size: 34,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
+
+                  // Título en Manrope
+                  Text(
                     'Gestor de Gastos',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.4,
+                        ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Inicia sesión para gestionar tus finanzas',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 32),
 
-                  // Campo de Correo Electrónico
-                  TextFormField(
+                  // Campo de Correo Electrónico reutilizable
+                  CampoTexto(
                     controller: _emailCtrl,
+                    labelText: 'Correo electrónico',
+                    hintText: 'ejemplo@correo.com',
+                    prefixIcon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      labelText: 'Correo electrónico',
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.green.shade700, width: 2),
-                      ),
-                    ),
                     validator: (valor) {
                       if (valor == null || valor.trim().isEmpty) {
                         return 'Ingresa tu correo';
@@ -141,35 +143,22 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Campo de Contraseña
-                  TextFormField(
+                  // Campo de Contraseña reutilizable
+                  CampoTexto(
                     controller: _passCtrl,
+                    labelText: 'Contraseña',
+                    prefixIcon: Icons.lock_outline,
                     obscureText: _ocultarPass,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      labelText: 'Contraseña',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _ocultarPass
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: colors.textSecondary,
+                        size: 20,
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.green.shade700, width: 2),
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _ocultarPass ? Icons.visibility_off : Icons.visibility,
-                          color: Colors.grey.shade600,
-                        ),
-                        onPressed: () =>
-                            setState(() => _ocultarPass = !_ocultarPass),
-                      ),
+                      onPressed: () =>
+                          setState(() => _ocultarPass = !_ocultarPass),
                     ),
                     validator: (valor) {
                       if (valor == null || valor.isEmpty) {
@@ -183,47 +172,50 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 28),
 
-                  // Botón verde ancho
+                  // Botón principal ancho con el color primario del tema
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: FilledButton(
                       onPressed: _cargando ? null : _ingresar,
                       style: FilledButton.styleFrom(
-                        backgroundColor: Colors.green.shade600,
-                        foregroundColor: Colors.white,
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: _cargando
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 22,
                               height: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onPrimary,
                               ),
                             )
                           : const Text(
                               'Iniciar Sesión',
                               style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Enlace a la pantalla de registro
+                  // Enlace secundario con color de texto secundario
                   TextButton(
                     onPressed: () => context.go(AppRoutes.register),
                     child: Text(
                       '¿No tienes una cuenta? Regístrate',
                       style: TextStyle(
-                        color: Colors.green.shade800,
+                        color: colors.textSecondary,
                         fontWeight: FontWeight.w600,
+                        fontSize: 14,
                       ),
                     ),
                   ),

@@ -5,9 +5,11 @@ import '../models/gasto_model.dart';
 import '../routers.dart';
 import '../services/gasto_service.dart';
 import '../services/preferencias_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/campo_texto.dart';
 
 /// Pantalla con formulario para registrar o editar un gasto.
-/// Si recibe un objeto [gasto], entra en modo edición; de lo contrario, en modo creación.
+/// Diseñada con estética fintech minimalista y adaptable a temas claro y oscuro.
 class GastoFormPage extends StatefulWidget {
   final Gasto? gasto;
 
@@ -20,11 +22,9 @@ class GastoFormPage extends StatefulWidget {
 class _GastoFormPageState extends State<GastoFormPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controladores de texto
   late final TextEditingController _montoCtrl;
   late final TextEditingController _descripcionCtrl;
 
-  // Categorías disponibles para seleccionar
   static const List<String> _categorias = [
     'Alimentación',
     'Transporte',
@@ -47,15 +47,15 @@ class _GastoFormPageState extends State<GastoFormPage> {
   @override
   void initState() {
     super.initState();
-    // Inicializar los campos con los datos del gasto existente o valores predeterminados.
     final gasto = widget.gasto;
     _montoCtrl = TextEditingController(
       text: gasto != null ? gasto.monto.toStringAsFixed(2) : '',
     );
     _descripcionCtrl = TextEditingController(text: gasto?.descripcion ?? '');
-    _categoriaSeleccionada = gasto != null && _categorias.contains(gasto.categoria)
-        ? gasto.categoria
-        : _categorias.first;
+    _categoriaSeleccionada =
+        gasto != null && _categorias.contains(gasto.categoria)
+            ? gasto.categoria
+            : _categorias.first;
     _fechaSeleccionada = gasto?.fecha ?? DateTime.now();
   }
 
@@ -66,7 +66,6 @@ class _GastoFormPageState extends State<GastoFormPage> {
     super.dispose();
   }
 
-  /// Abre el selector de fecha nativo de Flutter.
   Future<void> _seleccionarFecha() async {
     final DateTime? fechaElegida = await showDatePicker(
       context: context,
@@ -85,16 +84,18 @@ class _GastoFormPageState extends State<GastoFormPage> {
     }
   }
 
-  /// Guarda el nuevo gasto o actualiza el existente a través de GastoService.
   Future<void> _guardarGasto() async {
     if (!_formKey.currentState!.validate()) return;
 
     final double? monto = double.tryParse(_montoCtrl.text.replaceAll(',', '.'));
     if (monto == null || monto <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor ingresa un monto válido mayor a 0.'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: Text(
+            'Por favor ingresa un monto válido mayor a 0.',
+            style: TextStyle(color: Theme.of(context).colorScheme.onError),
+          ),
+          backgroundColor: context.appColors.gasto,
         ),
       );
       return;
@@ -104,7 +105,6 @@ class _GastoFormPageState extends State<GastoFormPage> {
 
     try {
       if (_esEdicion) {
-        // Actualizar gasto existente
         final gastoActualizado = widget.gasto!.copyWith(
           monto: monto,
           categoria: _categoriaSeleccionada,
@@ -113,7 +113,6 @@ class _GastoFormPageState extends State<GastoFormPage> {
         );
         await GastoService().editar(gastoActualizado);
       } else {
-        // Crear nuevo gasto
         final nuevoGasto = Gasto(
           monto: monto,
           categoria: _categoriaSeleccionada,
@@ -131,18 +130,20 @@ class _GastoFormPageState extends State<GastoFormPage> {
                 ? 'Gasto actualizado correctamente'
                 : 'Gasto registrado con éxito',
           ),
-          backgroundColor: Colors.green.shade700,
+          backgroundColor: Theme.of(context).colorScheme.onSurface,
         ),
       );
 
-      // Regresamos a la pantalla de Inicio con context.go
       context.go(AppRoutes.home);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error al guardar el gasto: $e'),
-          backgroundColor: Colors.red,
+          content: Text(
+            'Error al guardar el gasto: $e',
+            style: TextStyle(color: Theme.of(context).colorScheme.onError),
+          ),
+          backgroundColor: context.appColors.gasto,
         ),
       );
     } finally {
@@ -152,7 +153,6 @@ class _GastoFormPageState extends State<GastoFormPage> {
     }
   }
 
-  /// Muestra diálogo de confirmación y elimina el gasto en modo edición.
   Future<void> _confirmarYEliminar() async {
     final gasto = widget.gasto;
     if (gasto == null) return;
@@ -169,7 +169,7 @@ class _GastoFormPageState extends State<GastoFormPage> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: context.appColors.gasto,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Eliminar'),
@@ -187,7 +187,7 @@ class _GastoFormPageState extends State<GastoFormPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Gasto "${gasto.descripcion}" eliminado'),
-            backgroundColor: Colors.grey.shade800,
+            backgroundColor: Theme.of(context).colorScheme.onSurface,
           ),
         );
         context.go(AppRoutes.home);
@@ -195,8 +195,11 @@ class _GastoFormPageState extends State<GastoFormPage> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al eliminar el gasto: $e'),
-            backgroundColor: Colors.red,
+            content: Text(
+              'Error al eliminar el gasto: $e',
+              style: TextStyle(color: Theme.of(context).colorScheme.onError),
+            ),
+            backgroundColor: context.appColors.gasto,
           ),
         );
       } finally {
@@ -209,19 +212,24 @@ class _GastoFormPageState extends State<GastoFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final pref = PreferenciasService();
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_esEdicion ? 'Editar Gasto' : 'Nuevo Gasto'),
+        title: Text(
+          _esEdicion ? 'Editar Gasto' : 'Nuevo Gasto',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_outlined),
           tooltip: 'Volver',
           onPressed: () => context.go(AppRoutes.home),
         ),
         actions: [
-          // Ícono de papelera en la barra superior cuando se está editando
           if (_esEdicion)
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              icon: Icon(Icons.delete_outline, color: colors.gasto),
               tooltip: 'Eliminar gasto',
               onPressed:
                   _guardando || _eliminando ? null : _confirmarYEliminar,
@@ -230,27 +238,26 @@ class _GastoFormPageState extends State<GastoFormPage> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Campo de Monto
-                TextFormField(
+                // Campo de Monto reutilizable
+                CampoTexto(
                   controller: _montoCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    labelText: 'Monto (${PreferenciasService().simboloMoneda})',
-                    prefixIcon: const Icon(Icons.monetization_on_outlined),
-                    border: const OutlineInputBorder(),
-                    hintText: 'Ej: 25000',
-                  ),
+                  labelText: 'Monto (${pref.simboloMoneda})',
+                  hintText: 'Ej: 25000',
+                  prefixIcon: Icons.monetization_on_outlined,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   validator: (valor) {
                     if (valor == null || valor.trim().isEmpty) {
                       return 'Ingresa el monto del gasto';
                     }
-                    final parseado = double.tryParse(valor.replaceAll(',', '.'));
+                    final parseado =
+                        double.tryParse(valor.replaceAll(',', '.'));
                     if (parseado == null || parseado <= 0) {
                       return 'Ingresa un número válido mayor a 0';
                     }
@@ -259,13 +266,47 @@ class _GastoFormPageState extends State<GastoFormPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Selector de Categoría (Dropdown)
+                // Selector de Categoría con estilo minimalista del tema
                 DropdownButtonFormField<String>(
                   initialValue: _categoriaSeleccionada,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Theme.of(context).cardTheme.color,
                     labelText: 'Categoría',
-                    prefixIcon: Icon(Icons.category_outlined),
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.category_outlined,
+                      color: colors.textSecondary,
+                      size: 20,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 14.0,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: colors.border, width: 1),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: colors.border, width: 1),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  dropdownColor: Theme.of(context).cardTheme.color,
+                  icon: Icon(
+                    Icons.keyboard_arrow_down_outlined,
+                    color: colors.textSecondary,
                   ),
                   items: _categorias.map((cat) {
                     return DropdownMenuItem(
@@ -281,15 +322,12 @@ class _GastoFormPageState extends State<GastoFormPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Campo de Descripción
-                TextFormField(
+                // Campo de Descripción reutilizable
+                CampoTexto(
                   controller: _descripcionCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Descripción',
-                    prefixIcon: Icon(Icons.description_outlined),
-                    border: OutlineInputBorder(),
-                    hintText: 'Ej: Almuerzo universitario, pasajes de bus',
-                  ),
+                  labelText: 'Descripción',
+                  hintText: 'Ej: Almuerzo universitario, pasajes',
+                  prefixIcon: Icons.description_outlined,
                   validator: (valor) {
                     if (valor == null || valor.trim().isEmpty) {
                       return 'Ingresa una breve descripción';
@@ -299,81 +337,119 @@ class _GastoFormPageState extends State<GastoFormPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Selector de Fecha con DatePicker
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: BorderSide(color: Colors.grey.shade400),
+                // Selector de Fecha estilizado con el tema
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardTheme.color,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: colors.border, width: 1),
                   ),
                   child: ListTile(
-                    leading: const Icon(Icons.calendar_today_outlined),
-                    title: const Text('Fecha del gasto'),
+                    leading: Icon(
+                      Icons.calendar_today_outlined,
+                      color: colors.textSecondary,
+                      size: 20,
+                    ),
+                    title: Text(
+                      'Fecha del gasto',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     subtitle: Text(
                       '${_fechaSeleccionada.day.toString().padLeft(2, '0')}/'
                       '${_fechaSeleccionada.month.toString().padLeft(2, '0')}/'
                       '${_fechaSeleccionada.year}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
-                    trailing: TextButton.icon(
+                    trailing: TextButton(
                       onPressed: _seleccionarFecha,
-                      icon: const Icon(Icons.edit_calendar),
-                      label: const Text('Cambiar'),
+                      child: Text(
+                        'Cambiar',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 28),
 
-                // Botón Guardar / Actualizar
-                FilledButton.icon(
-                  onPressed: _guardando || _eliminando ? null : _guardarGasto,
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  icon: _guardando
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.save),
-                  label: Text(
-                    _guardando
-                        ? 'Guardando...'
-                        : (_esEdicion ? 'Actualizar Gasto' : 'Guardar Gasto'),
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-
-                // Botón Eliminar cuando se está editando
-                if (_esEdicion) ...[
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed:
-                        _guardando || _eliminando ? null : _confirmarYEliminar,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                // Botón Guardar principal con color primario
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: FilledButton.icon(
+                    onPressed: _guardando || _eliminando ? null : _guardarGasto,
+                    style: FilledButton.styleFrom(
+                      backgroundColor:
+                          Theme.of(context).colorScheme.primary,
+                      foregroundColor:
+                          Theme.of(context).colorScheme.onPrimary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    icon: _eliminando
-                        ? const SizedBox(
+                    icon: _guardando
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.red,
+                              color: Theme.of(context).colorScheme.onPrimary,
                             ),
                           )
-                        : const Icon(Icons.delete_outline),
+                        : const Icon(Icons.save_outlined, size: 20),
                     label: Text(
-                      _eliminando ? 'Eliminando...' : 'Eliminar Gasto',
+                      _guardando
+                          ? 'Guardando...'
+                          : (_esEdicion ? 'Actualizar Gasto' : 'Guardar Gasto'),
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Botón Eliminar en color de error
+                if (_esEdicion) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      onPressed:
+                          _guardando || _eliminando ? null : _confirmarYEliminar,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colors.gasto,
+                        side: BorderSide(color: colors.gasto, width: 1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: _eliminando
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colors.gasto,
+                              ),
+                            )
+                          : const Icon(Icons.delete_outline, size: 20),
+                      label: Text(
+                        _eliminando ? 'Eliminando...' : 'Eliminar Gasto',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),

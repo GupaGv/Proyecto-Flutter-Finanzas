@@ -4,8 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../routers.dart';
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/campo_texto.dart';
 
 /// Pantalla para registrar una nueva cuenta de usuario.
+/// Diseñada con estética fintech minimalista y adaptable a temas claro y oscuro.
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
@@ -30,7 +33,6 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   void initState() {
     super.initState();
-    // Escucha los cambios en la contraseña para recalcular su fortaleza en tiempo real.
     _passCtrl.addListener(_actualizarFortaleza);
   }
 
@@ -62,19 +64,22 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  /// Color de la barra de progreso según el nivel alcanzado.
-  Color _colorFortaleza() {
+  /// Color de la barra de progreso adaptado a la paleta del tema.
+  Color _colorFortaleza(BuildContext context) {
+    final colors = context.appColors;
+    final primary = Theme.of(context).colorScheme.primary;
+
     switch (_nivelFortaleza) {
       case 1:
-        return Colors.red;
+        return colors.gasto;
       case 2:
-        return Colors.orange;
+        return colors.gasto.withValues(alpha: 0.8);
       case 3:
-        return Colors.amber.shade700;
+        return colors.greenSecondary;
       case 4:
-        return Colors.green;
+        return primary;
       default:
-        return Colors.grey.shade300;
+        return colors.border;
     }
   }
 
@@ -107,16 +112,22 @@ class _RegisterPageState extends State<RegisterPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(mensajeDeError(e)),
-          backgroundColor: Colors.red.shade700,
+          content: Text(
+            mensajeDeError(e),
+            style: TextStyle(color: Theme.of(context).colorScheme.onError),
+          ),
+          backgroundColor: context.appColors.gasto,
         ),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error inesperado. Intenta de nuevo.'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: Text(
+            'Error inesperado. Intenta de nuevo.',
+            style: TextStyle(color: Theme.of(context).colorScheme.onError),
+          ),
+          backgroundColor: context.appColors.gasto,
         ),
       );
     } finally {
@@ -128,11 +139,13 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final colorFortaleza = _colorFortaleza(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Crear Cuenta'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_outlined),
           onPressed: () => context.go(AppRoutes.login),
         ),
       ),
@@ -145,59 +158,53 @@ class _RegisterPageState extends State<RegisterPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Ícono superior circular
+                  // Ícono simple y elegante arriba
                   Center(
                     child: Container(
-                      width: 90,
-                      height: 90,
+                      width: 68,
+                      height: 68,
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.green.shade200, width: 2),
+                        color: colors.greenSecondary.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: colors.border, width: 1),
                       ),
                       child: Icon(
-                        Icons.person_add_alt_1_rounded,
-                        size: 48,
-                        color: Colors.green.shade700,
+                        Icons.person_add_outlined,
+                        size: 34,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Registro de Usuario',
+                  const SizedBox(height: 18),
+
+                  // Título en Manrope
+                  Text(
+                    'Crear Cuenta',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.4,
+                        ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Crea tu cuenta para comenzar a registrar tus gastos',
+                    'Regístrate para comenzar a gestionar tus finanzas',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 28),
 
                   // Campo de Correo Electrónico
-                  TextFormField(
+                  CampoTexto(
                     controller: _emailCtrl,
+                    labelText: 'Correo electrónico',
+                    hintText: 'ejemplo@correo.com',
+                    prefixIcon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      labelText: 'Correo electrónico',
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.green.shade700, width: 2),
-                      ),
-                    ),
                     validator: (valor) {
                       if (valor == null || valor.trim().isEmpty) {
                         return 'Ingresa un correo';
@@ -211,34 +218,21 @@ class _RegisterPageState extends State<RegisterPage> {
                   const SizedBox(height: 16),
 
                   // Campo de Contraseña con botón mostrar/ocultar
-                  TextFormField(
+                  CampoTexto(
                     controller: _passCtrl,
+                    labelText: 'Contraseña',
+                    prefixIcon: Icons.lock_outline,
                     obscureText: _ocultarPass,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      labelText: 'Contraseña',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _ocultarPass
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: colors.textSecondary,
+                        size: 20,
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.green.shade700, width: 2),
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _ocultarPass ? Icons.visibility_off : Icons.visibility,
-                          color: Colors.grey.shade600,
-                        ),
-                        onPressed: () =>
-                            setState(() => _ocultarPass = !_ocultarPass),
-                      ),
+                      onPressed: () =>
+                          setState(() => _ocultarPass = !_ocultarPass),
                     ),
                     validator: (valor) {
                       if (valor == null || valor.isEmpty) {
@@ -252,17 +246,17 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Barra indicadora de fortaleza de contraseña (LinearProgressIndicator)
+                  // Barra de progreso de fortaleza de contraseña
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: _nivelFortaleza / 4.0,
-                      minHeight: 6,
-                      backgroundColor: Colors.grey.shade200,
-                      valueColor: AlwaysStoppedAnimation<Color>(_colorFortaleza()),
+                      minHeight: 5,
+                      backgroundColor: colors.border.withValues(alpha: 0.5),
+                      valueColor: AlwaysStoppedAnimation<Color>(colorFortaleza),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -270,7 +264,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         'Fortaleza: ${_textoFortaleza()}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: _colorFortaleza(),
+                          color: colorFortaleza,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -278,7 +272,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         '$_nivelFortaleza de 4 niveles',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey.shade600,
+                          color: colors.textSecondary,
                         ),
                       ),
                     ],
@@ -286,36 +280,21 @@ class _RegisterPageState extends State<RegisterPage> {
                   const SizedBox(height: 16),
 
                   // Campo de Confirmación de Contraseña con botón mostrar/ocultar
-                  TextFormField(
+                  CampoTexto(
                     controller: _confirmPassCtrl,
+                    labelText: 'Confirmar contraseña',
+                    prefixIcon: Icons.lock_reset_outlined,
                     obscureText: _ocultarConfirmPass,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      labelText: 'Confirmar contraseña',
-                      prefixIcon: const Icon(Icons.lock_reset),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _ocultarConfirmPass
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: colors.textSecondary,
+                        size: 20,
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.green.shade700, width: 2),
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _ocultarConfirmPass
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.grey.shade600,
-                        ),
-                        onPressed: () => setState(
-                          () => _ocultarConfirmPass = !_ocultarConfirmPass,
-                        ),
+                      onPressed: () => setState(
+                        () => _ocultarConfirmPass = !_ocultarConfirmPass,
                       ),
                     ),
                     validator: (valor) {
@@ -330,47 +309,50 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 28),
 
-                  // Botón verde ancho de registro
+                  // Botón principal ancho con color primario del tema
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: FilledButton(
                       onPressed: _cargando ? null : _registrar,
                       style: FilledButton.styleFrom(
-                        backgroundColor: Colors.green.shade600,
-                        foregroundColor: Colors.white,
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: _cargando
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 22,
                               height: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onPrimary,
                               ),
                             )
                           : const Text(
                               'Registrarme',
                               style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Enlace para volver al login con context.go
+                  // Enlace secundario con color de texto secundario
                   TextButton(
                     onPressed: () => context.go(AppRoutes.login),
                     child: Text(
                       '¿Ya tienes una cuenta? Inicia sesión',
                       style: TextStyle(
-                        color: Colors.green.shade800,
+                        color: colors.textSecondary,
                         fontWeight: FontWeight.w600,
+                        fontSize: 14,
                       ),
                     ),
                   ),
