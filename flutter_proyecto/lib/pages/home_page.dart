@@ -3,17 +3,21 @@ import 'package:go_router/go_router.dart';
 
 import '../models/gasto_model.dart';
 import '../models/ingreso_model.dart';
+import '../models/perfil_model.dart';
 import '../routers.dart';
 import '../services/auth_service.dart';
 import '../services/gasto_service.dart';
 import '../services/ingreso_service.dart';
+import '../services/perfil_service.dart';
 import '../services/preferencias_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/acciones_rapidas.dart';
 import '../widgets/encabezado_seccion.dart';
 import '../widgets/fila_categoria.dart';
 import '../widgets/fila_movimiento.dart';
+import '../widgets/resumen_ultimos_7_dias.dart';
 import '../widgets/tarjeta_saldo.dart';
+import '../widgets/user_avatar.dart';
 
 /// Modelo interno para unificar ingresos y gastos en una sola lista cronológica.
 class _MovimientoItem {
@@ -209,7 +213,12 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final usuario = AuthService().usuarioActual;
-    final email = usuario?.email ?? 'Usuario';
+    final email = usuario?.email ?? '';
+    final nombreAuth = usuario?.displayName;
+
+    final String saludoNombre = (nombreAuth != null && nombreAuth.trim().isNotEmpty)
+        ? nombreAuth.trim()
+        : (email.contains('@') ? email.split('@').first : 'Usuario');
 
     final nombreMes = _meses[_mesSeleccionado.month - 1];
     final anio = _mesSeleccionado.year;
@@ -226,49 +235,58 @@ class _HomePageState extends State<HomePage> {
         return Scaffold(
           appBar: AppBar(
             titleSpacing: 20,
-            title: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: colors.greenSecondary.withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    Icons.account_balance_wallet_outlined,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Hola,',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: colors.textSecondary,
-                          fontWeight: FontWeight.w500,
-                        ),
+            title: StreamBuilder<PerfilUsuario>(
+              stream: PerfilService().obtenerPerfil(),
+              builder: (context, snapshot) {
+                final perfil = snapshot.data;
+
+                return Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.go(AppRoutes.perfil),
+                      child: UserAvatar(
+                        size: 38,
+                        fotoBase64: perfil?.fotoBase64,
+                        avatarId: perfil?.avatarId,
+                        nombre: nombreAuth,
+                        email: email,
                       ),
-                      Text(
-                        email,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Hola,',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            saludoNombre,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-              ],
+                    ),
+                  ],
+                );
+              },
             ),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.bar_chart_outlined, size: 22),
+                tooltip: 'Estadísticas',
+                onPressed: () => context.go(AppRoutes.estadisticas),
+              ),
               IconButton(
                 icon: const Icon(Icons.settings_outlined, size: 22),
                 tooltip: 'Configuración',
@@ -475,6 +493,15 @@ class _HomePageState extends State<HomePage> {
 
                       // Dos acciones rápidas
                       const AccionesRapidas(),
+                      const SizedBox(height: 20),
+
+                      // Widget compacto "Últimos 7 días" con enlace a estadísticas
+                      ResumenUltimos7Dias(
+                        todosLosGastos: todosLosGastos,
+                        moneda: pref.moneda,
+                        onVerEstadisticas: () =>
+                            context.go(AppRoutes.estadisticas),
+                      ),
                       const SizedBox(height: 24),
 
                       // Resumen por Categoría

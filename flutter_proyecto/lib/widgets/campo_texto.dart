@@ -14,6 +14,8 @@ class CampoTexto extends StatelessWidget {
   final TextInputType? keyboardType;
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
+  final int? maxLength;
+  final TextCapitalization textCapitalization;
 
   const CampoTexto({
     super.key,
@@ -26,6 +28,8 @@ class CampoTexto extends StatelessWidget {
     this.keyboardType,
     this.validator,
     this.onChanged,
+    this.maxLength,
+    this.textCapitalization = TextCapitalization.none,
   });
 
   @override
@@ -38,6 +42,8 @@ class CampoTexto extends StatelessWidget {
       keyboardType: keyboardType,
       validator: validator,
       onChanged: onChanged,
+      maxLength: maxLength,
+      textCapitalization: textCapitalization,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w500,
           ),
@@ -65,6 +71,10 @@ class CampoTexto extends StatelessWidget {
         suffixIcon: suffixIcon,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+        counterStyle: TextStyle(
+          color: colors.textSecondary,
+          fontSize: 11,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: colors.border, width: 1),

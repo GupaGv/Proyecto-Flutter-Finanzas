@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'models/gasto_model.dart';
 import 'models/ingreso_model.dart';
+import 'pages/estadisticas_page.dart';
 import 'pages/gasto_form_page.dart';
 import 'pages/home_page.dart';
 import 'pages/ingreso_form_page.dart';
@@ -19,6 +20,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
   static const String home = '/home';
+  static const String estadisticas = '/estadisticas';
   static const String perfil = '/perfil';
   static const String settings = '/settings';
   static const String gastoForm = '/gasto-form';
@@ -93,6 +95,10 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: AppRoutes.home,
           builder: (context, state) => const HomePage(),
+        ),
+        GoRoute(
+          path: AppRoutes.estadisticas,
+          builder: (context, state) => const EstadisticasPage(),
         ),
         GoRoute(
           path: AppRoutes.perfil,

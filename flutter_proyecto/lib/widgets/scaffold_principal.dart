@@ -5,7 +5,7 @@ import '../routers.dart';
 import '../theme/app_theme.dart';
 
 /// Estructura base (Shell) con barra de navegación inferior minimalista.
-/// Permite alternar entre Inicio, Perfil y Ajustes sin romper la navegación declarativa.
+/// Permite alternar entre Inicio, Estadísticas, Perfil y Ajustes sin romper la navegación declarativa.
 class ScaffoldPrincipal extends StatelessWidget {
   final Widget child;
 
@@ -14,8 +14,9 @@ class ScaffoldPrincipal extends StatelessWidget {
   /// Determina el índice activo según la ruta actual en GoRouter.
   int _calcularIndice(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    if (location.startsWith(AppRoutes.perfil)) return 1;
-    if (location.startsWith(AppRoutes.settings)) return 2;
+    if (location.startsWith(AppRoutes.estadisticas)) return 1;
+    if (location.startsWith(AppRoutes.perfil)) return 2;
+    if (location.startsWith(AppRoutes.settings)) return 3;
     return 0; // Inicio por defecto
   }
 
@@ -26,9 +27,12 @@ class ScaffoldPrincipal extends StatelessWidget {
         context.go(AppRoutes.home);
         break;
       case 1:
-        context.go(AppRoutes.perfil);
+        context.go(AppRoutes.estadisticas);
         break;
       case 2:
+        context.go(AppRoutes.perfil);
+        break;
+      case 3:
         context.go(AppRoutes.settings);
         break;
     }
@@ -70,6 +74,19 @@ class ScaffoldPrincipal extends StatelessWidget {
                 size: 22,
               ),
               label: 'Inicio',
+            ),
+            NavigationDestination(
+              icon: Icon(
+                Icons.bar_chart_outlined,
+                color: colors.textSecondary,
+                size: 22,
+              ),
+              selectedIcon: Icon(
+                Icons.bar_chart,
+                color: primary,
+                size: 22,
+              ),
+              label: 'Estadísticas',
             ),
             NavigationDestination(
               icon: Icon(

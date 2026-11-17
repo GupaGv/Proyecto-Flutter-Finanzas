@@ -6,6 +6,7 @@ void main() {
     expect(AppRoutes.login, '/login');
     expect(AppRoutes.register, '/register');
     expect(AppRoutes.home, '/home');
+    expect(AppRoutes.estadisticas, '/estadisticas');
     expect(AppRoutes.perfil, '/perfil');
     expect(AppRoutes.settings, '/settings');
     expect(AppRoutes.gastoForm, '/gasto-form');

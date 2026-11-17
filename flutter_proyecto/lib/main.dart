@@ -6,14 +6,18 @@ import 'routers.dart';
 import 'services/preferencias_service.dart';
 import 'theme/app_theme.dart';
 
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
+
 /// Punto de entrada principal de la aplicación Flutter.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Inicializar Firebase antes de utilizar los servicios de autenticación y base de datos.
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  await initializeDateFormatting('es_CO', null);
+  Intl.defaultLocale = 'es_CO';
 
   // Inicializar Preferencias del usuario persistidas en shared_preferences.
   await PreferenciasService().inicializar();
